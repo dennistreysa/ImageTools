@@ -5,7 +5,7 @@ A toolset to help splitting images into their components and to perform logical 
 
 Especially amongst Geocachers it's a common riddle to hide information (e.g. coordinates) in an imagefile, but since EXIF-based hideouts are now well known, people search for more advanced steganography-methods to hide data.
 
-A very common, but kinda hard to detect method (at least with most image-processing tools) is to make use of the fact, that changing the LSB (least significant bit) of the components (e.g. red, green, blue) of a pixel makes no difference for the human eye. This gives room to hide data there.
+A very common, but kinda hard to detect method (at least with most image-processing tools) is to make use of the fact, that changing the LSB (least significant bit) of the components (e.g. red, green, blue) of a pixel makes no difference for the human eye.
 
 With the help of this toolset it's possible to extract that data easily.
 
