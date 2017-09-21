@@ -1,5 +1,5 @@
 # ImageTools
-A toolset to find hidden information in images by disassembling them into their components.
+A toolset to help splitting images into their components and to perform logical masks on pixel values.
 
 ## Background
 
