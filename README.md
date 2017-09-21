@@ -167,7 +167,7 @@ masks = [
 	["&", 2, 0xff]
 ]
 ```
-If you would like to create a new component for for each mask instead of performing the mask to the same component, just pass the `multiMask=False` parameter:
+If you would like to create a new component for each mask instead of performing the masks all on the same component, just pass the `multiMask=False` parameter:
 
 ```python
 from imagetools import ImageTools
