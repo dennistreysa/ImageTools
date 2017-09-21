@@ -140,7 +140,7 @@ it = ImageTools("image.png")
 masks = [
 	["&", 0, 0xaa],
 	["|", 1, 0xbb],
-	["^", 2, 0xxx]
+	["^", 2, 0xcc]
 ]
 
 it.GetMaskedComponents(masks).save("masked.png")
@@ -152,7 +152,7 @@ If you want to perform the masks from above all on the first component, the mask
 masks = [
 	["&", 0, 0xaa],
 	["|", 0, 0xbb],
-	["^", 0, 0xxx]
+	["^", 0, 0xcc]
 ]
 ```
 
@@ -162,7 +162,7 @@ masks = [
 masks = [
 	["&", 0, 0xaa],
 	["|", 0, 0xbb],
-	["^", 0, 0xxx],
+	["^", 0, 0xcc],
 	["&", 1, 0xff],
 	["&", 2, 0xff]
 ]
@@ -177,7 +177,7 @@ it = ImageTools("image.png")
 masks = [
 	["&", 0, 0xaa],
 	["|", 0, 0xbb],
-	["^", 0, 0xxx]
+	["^", 0, 0xcc]
 ]
 
 it.GetMaskedComponents(masks, multiMask=False).save("masked.png")
