@@ -98,7 +98,7 @@ This can be done via the three mask-methods `GetAndMaskedComponent`, `GetOrMaske
 
 This will perform a logic *AND*-operation on all values of a given component.
 
-For example the following code deleted every second bit of the second component.
+For example the following code sets every second bit of the second component to zero.
 
 ```python
 from imagetools import ImageTools
