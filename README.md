@@ -44,9 +44,9 @@ All methods in the upcoming examples yield *iterators* to **PIL.Image.Image** ob
 
 ## Splitting
 
-### Splitting an image into it's components
+### Splitting an image into its components
 
-If you want to split an image into it's components, e.g. splitting a RGB-image into the red, green and blue component, call the `SplitComponents` method:
+If you want to split an image into its components, e.g. splitting a RGB-image into the red, green and blue component, call the `SplitComponents` method:
 
 ```python
 from imagetools import ImageTools
@@ -57,9 +57,9 @@ for i, component in enumerate(it.SplitComponents()):
 	component.save("component_%d.png" % (i))
 ```
 
-### Splitting an image into it's bit-layers
+### Splitting an image into its bit-layers
 
-If you need the bit-layers of an image, use `SplitBitLayers`. **Note:** This will not seperate the image by it's components, so for a normal 8-bit RGB image, it will return 8 images. If you also want to split the image by it's components have a look at the next method!
+If you need the bit-layers of an image, use `SplitBitLayers`. **Note:** This will not seperate the image by its components, so for a normal 8-bit RGB image, it will return 8 images. If you also want to split the image by its components have a look at the next method!
 
 ```python
 from imagetools import ImageTools
@@ -72,7 +72,7 @@ for i, layer in enumerate(it.SplitBitLayers()):
 
 If you want your layer to have more than one bit, just pass the `bits` parameter with the number of desired bits. Note that the layers will overlap!
 
-### Splitting an image into it's bit-layers AND components
+### Splitting an image into its bit-layers AND components
 
 If you want to combine the `SplitComponents` and `SplitBitLayers` methods, use `SplitBitLayersComponents` (who would have guessed it 😄). **Note:** The method will yield an array with the bit-layers for each component.
 
