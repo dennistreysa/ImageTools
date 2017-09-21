@@ -74,7 +74,7 @@ If you want your layer to have more than one bit, just pass the `bits` parameter
 
 ### Splitting an image into its bit-layers AND components
 
-If you want to combine the `SplitComponents` and `SplitBitLayers` methods, use `SplitBitLayersComponents` (who would have guessed it 😄). **Note:** The method will yield an array with the bit-layers for each component.
+If you want to combine the `SplitComponents` and `SplitBitLayers` methods, use `SplitBitLayersComponents` (who would have guessed it 😄). **Note:** The method will yield an array containing the bit-layers for each component.
 
 ```python
 from imagetools import ImageTools
