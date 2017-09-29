@@ -1,7 +1,7 @@
 """
 ImageTools
 
-A toolset to help splitting images into their components and to perform logical masks on pixel values.
+A toolset to help splitting images into their components, to perform logical masks on pixel values an to extract binary data hidden in the pixel values.
 
 Author: dennistreysa (https://github.com/dennistreysa)
 URL: https://github.com/dennistreysa/ImageTools
@@ -17,10 +17,101 @@ import scipy.misc
 from PIL import Image
 
 
+class BitWriter(object):
+
+	def __init__(self, leftToRight=True, bits=8):
+		self._leftToRight = leftToRight
+		self._bits = bits
+		self.ClearData()
+
+	def PushBit(self, bit):
+		bit = int(bit) & 0x01
+
+		if self._bitsInCurrentByte % self._bits == 0:
+			self._bytes.append( 0x00 ) if self._leftToRight else self._bytes.insert(0,  0x00 )
+			self._bitsInCurrentByte = 0
+
+		if self._leftToRight:
+			self._bytes[-1] = ( bit << (self._bits - self._bitsInCurrentByte - 1) ) | self._bytes[-1]
+		else:
+			self._bytes[0] = ( bit << self._bitsInCurrentByte ) | self._bytes[0]
+		
+		self._bitsInCurrentByte += 1
+
+	def ClearData(self):
+		self._bitsInCurrentByte = 0
+		self._bytes = [ ]
+
+	@property
+	def BitsPerByte(self):
+		return self._bits
+
+	@property
+	def BitsTotal(self):
+		return (len(self._bytes) - 1) * self._bits + self._bitsInCurrentByte
+
+	@property
+	def Bytes(self):
+		return bytearray(self._bytes)
+
+
+class PatternWalker(object):
+
+	def __init__(self, rows, cols, leftToRight, topToDown, horizontalFirst, alternate):
+		self._rows = rows
+		self._cols = cols
+		self._leftToRight = leftToRight
+		self._topToBottom = topToDown
+		self._horizontalFirst = horizontalFirst
+		self._alternate = alternate
+		self._alternateState = True
+
+	@property
+	def Walk(self):
+		if self._horizontalFirst:
+			top = 0 if self._topToBottom else self._rows - 1
+			bottom = self._rows if self._topToBottom else -1
+			stepVert = 1 if self._topToBottom else -1
+			for row in range(top, bottom, stepVert):
+				left = 0 if self._leftToRight else self._cols - 1
+				right = self._cols if self._leftToRight else -1
+				stepHor = 1 if self._leftToRight else -1
+				for col in range(left, right, stepHor):
+					yield [row, col]
+					if self._alternate:
+						self._leftToRight = not self._leftToRight
+		else:
+			left = 0 if self._leftToRight else self._cols - 1
+			right = self._cols if self._leftToRight else -1
+			stepHor = 1 if self._leftToRight else -1
+			for col in range(left, right, stepHor):
+				top = 0 if self._topToBottom else self._rows - 1
+				bottom = self._rows if self._topToBottom else -1
+				stepVert = 1 if self._topToBottom else -1
+				for row in range(top, bottom, stepVert):
+					yield [row, col]
+					if self._alternate:
+						self._topToBottom = not self._topToBottom
+
+
 class ImageTools(object):
 
-	def __init__(self, imagePath=None):
-		self._bits = 8
+	BITS_PER_COMPONENT = {
+		'1': [1],
+		'L': [8],
+		'P': [8],
+		'RGB': [8,8,8],
+		'RGBA': [8,8,8,8],
+		'CMYK': [8,8,8,8],
+		'YCbCr': [8,8,8],
+		'LAB': [8,8,8],
+		'HSV': [8,8,8],
+		'I': [32],
+		'F': [32]
+	}
+
+	def __init__(self, imagePath=None, bitsOutput=8):
+		self._bits = bitsOutput
 		self._components = None
 		
 		if imagePath is not None:
@@ -29,7 +120,7 @@ class ImageTools(object):
 	def Load(self, imagePath):
 		"""Loads an image via a give file-path
 
-		imagePathe -- path to the image file
+		imagePath -- path to the image file
 		"""
 		assert os.path.isfile(imagePath), "No valid file path was passed!"
 		image = Image.open(imagePath)
@@ -37,6 +128,9 @@ class ImageTools(object):
 		self._height = self._imageData.shape[0]
 		self._width = self._imageData.shape[1]
 		self._components = self._imageData.shape[2]
+		assert image.mode in self.BITS_PER_COMPONENT, "Unknown image mode!"
+		self._mode = image.mode
+		self._bitsPerComponent = self.BITS_PER_COMPONENT[image.mode]
 		self._splittedComponents = None
 
 	def _splitComponents(self):
@@ -69,7 +163,7 @@ class ImageTools(object):
 		elif components == 3:
 			imageType = "RGB"
 		elif components == 4:
-			imageType = "ARGB"
+			imageType = "RGBA"
 		else:
 			raise Exception("Could not determine image type!")
 
@@ -146,8 +240,8 @@ class ImageTools(object):
 			yield self._toImage(component, toImage)
 
 	def SplitBitLayersComponents(self, bits=1, toImage=True):
-		for component in self._splitComponents():
-			yield [self._toImage(self._shift(self._maskBits(component, layer, layer + bits - 1), self._bits - layer - bits), toImage) for layer in range(self._bits - bits + 1)]
+		for iComponent, component in enumerate(self._splitComponents()):
+			yield [self._toImage(self._shift(self._maskBits(component, layer, layer + bits - 1), self._bitsPerComponent[iComponent] - layer - bits), toImage) for layer in range(self._bitsPerComponent[iComponent] - bits + 1)]
 
 	def SplitBitLayers(self, bits=1, toImage=True):
 		"""Returns the image data splitted by bit layers (components are not seperated)
@@ -159,8 +253,9 @@ class ImageTools(object):
 		bits [int] -- Number of bits to mask (default 1)
 		"""
 		assert bits > 0, "Need to mask at least one bit!"
-		for layer in range(self._bits - bits + 1):
-			yield self._toImage(self._shift(self._maskBits(self._imageData, layer, layer + bits - 1), self._bits - layer - bits), toImage)
+		_bits = min(self._bitsPerComponent)
+		for layer in range(_bits - bits + 1):
+			yield self._toImage(self._shift(self._maskBits(self._imageData, layer, layer + bits - 1), _bits - layer - bits), toImage)
 
 	def GetAndMaskedComponent(self, component, mask, shift=0, toImage=True):
 		return self._getMaskedComponentByIndex(component, self._and, mask, shift, toImage)
@@ -209,6 +304,38 @@ class ImageTools(object):
 				componentsOut.append(componentsOriginal[index])
 
 		return self._toImage(numpy.concatenate(componentsOut, axis=2), toImage)
+
+	def GetBinaryData(self, componentsRules, zipComponents=False):
+
+		bitWriter = BitWriter()
+		dataAvailable = True
+
+		if componentsRules:
+			
+			components = self._splitComponents()
+
+			for i, rule in enumerate(componentsRules):
+				assert ("id" in rule) and (int(rule["id"]) < len(components)), "Invalid component id!"
+				rule["id"] = int(rule["id"])
+				rule["bit"] = int(rule["bit"]) if "bit" in rule else 0
+				leftToRight = rule["leftToRight"] if "leftToRight" in rule else True
+				topToDown = rule["topToDown"] if "topToDown" in rule else True
+				horizontalFirst = rule["horizontalFirst"] if "horizontalFirst" in rule else True
+				alternate = rule["alternate"] if "alternate" in rule else False
+				componentsRules[i]["walker"] = PatternWalker(self._height, self._width, leftToRight, topToDown, horizontalFirst, alternate).Walk
+			
+			while dataAvailable:
+				for rule in componentsRules:
+					for b in range(1 if zipComponents else self._height * self._width):
+						try:
+							nextPos = next(rule["walker"])
+							row, col = nextPos
+							byte = int(components[rule["id"]][row][col]) & (0x01 << rule["bit"])
+							bitWriter.PushBit(byte)
+						except StopIteration:
+							dataAvailable = False
+							break
+		return bitWriter
 
 	def MagicEye(self, minValue=True, horizontal=True, numberOfResults=1, borderArea=0.1, toImage=True):
 
